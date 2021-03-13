@@ -28,11 +28,11 @@ async def update_channel(channel: discord.VoiceChannel):
             activity_name = member.activity.name
 
         if activity_name in activity_list:
-            activity_list.update({activity_name : activity_list.get(member.activity) + 1})
+            activity_list.update({activity_name : activity_list.get(activity_name) + 1})
         else:
             activity_list.update({activity_name : 1})
     
-    current_game = ("Empty", 0)
+    current_game = ("Lobby", 0)
     for game, value in activity_list.items():
         if value > current_game[1]:
             current_game = (game, value)
@@ -59,7 +59,7 @@ async def create_channel(guild: discord.Guild):
             empty_channel_exists = True
 
     if not empty_channel_exists:
-        await guild.create_voice_channel("Empty", category=automation_category)
+        await guild.create_voice_channel("Lobby", category=automation_category)
 
 
 @client.event
@@ -85,6 +85,7 @@ async def on_voice_state_update(member: discord.Member, before, after):
 
 @client.event
 async def on_member_update(before: discord.Member, after: discord.Member):
-    await update_channel(after.voice.channel)
+    if not after.voice == None:
+        await update_channel(after.voice.channel)
 
 client.run(token)
