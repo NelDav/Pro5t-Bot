@@ -3,9 +3,6 @@ import os
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-from asyncio import sleep
-
-from discord import Member
 
 intents = discord.Intents.default()
 intents.voice_states = True
@@ -17,8 +14,6 @@ load_dotenv()
 token = os.getenv("TOKEN")
 
 client = discord.Client(intents=intents)
-
-commander = commands.Bot(command_prefix='!')
 
 description = '''PRO5T'''
 
@@ -91,10 +86,5 @@ async def on_voice_state_update(member: discord.Member, before, after):
 @client.event
 async def on_member_update(before: discord.Member, after: discord.Member):
     await update_channel(after.voice.channel)
-
-@commander.command()
-async def update(ctx):
-    await update_channel(ctx.author.voice.channel)
-    await ctx.send("Sucessfully updated!")
 
 client.run(token)
