@@ -13,7 +13,7 @@ load_dotenv()
 
 token = os.getenv("TOKEN")
 
-client = discord.Client(intents=intents)
+client = commands.Bot(command_prefix='!', intents=intents)
 
 description = '''PRO5T'''
 
@@ -76,10 +76,10 @@ async def on_ready():
 async def on_voice_state_update(member: discord.Member, before, after):
     # Delete empty channels
     discord.VoiceChannel.category
-    if not before.channel == None and before.channel.category.name == ("Automatic voice") and len(before.channel.members) <= 0:
+    if not before.channel == None and before.channel.category.name == "Automatic voice" and len(before.channel.members) <= 0:
         await before.channel.delete()
 
-    if not after.channel == None and after.channel.category.name == ("Automatic voice") and len(after.channel.members) > 0:
+    if not after.channel == None and after.channel.category.name == "Automatic voice" and len(after.channel.members) > 0:
         await update_channel(after.channel)
         await create_channel(client.guilds[0])
 
@@ -87,5 +87,34 @@ async def on_voice_state_update(member: discord.Member, before, after):
 async def on_member_update(before: discord.Member, after: discord.Member):
     if not after.voice == None:
         await update_channel(after.voice.channel)
+
+async def change_member_limit(member: discord.Member, limit: int) -> str:
+    try:
+        if member.voice.channel.category.name == "Automatic voice":
+            await member.voice.channel.edit(user_limit = limit)
+            return None
+        else:
+            return "You are not in an automatic voice channel!"
+    except:
+        return "You are not in a voice channel!"
+
+@client.command()
+async def limit(ctx: commands.Context, number_of_members: str):
+    if number_of_members.isnumeric():
+        message = await change_member_limit(ctx.author, int(number_of_members))
+        if message == None:
+            await ctx.send("The number of users for the channel {} is limited to {} members!".format(ctx.author.voice.channel.name, number_of_members))
+        else:
+            await ctx.send(message)
+    else:
+        await ctx.send("Please specify the number of members allowed in this channel!")
+
+@client.command()
+async def unlimit(ctx: commands.Context):
+    message = await change_member_limit(ctx.author, 0)
+    if message == None:
+        await ctx.send("The number of users for the channel {} is unlimeted now!".format(ctx.author.voice.channel.name))
+    else:
+        await ctx.send(message)
 
 client.run(token)
