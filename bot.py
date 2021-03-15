@@ -17,42 +17,69 @@ client = commands.Bot(command_prefix='!', intents=intents)
 
 description = '''PRO5T'''
 
-async def update_channel(channel: discord.VoiceChannel):
-    if channel == None:
-        return
-
-    activity_list = { }
-    for member in channel.members:
-        activity_name = "Allgemein"
-        if not member.activity == None:
-            activity_name = member.activity.name
-
-        if activity_name in activity_list:
-            activity_list.update({activity_name : activity_list.get(activity_name) + 1})
+async def is_automatic_channel(channel: discord.VoiceChannel):
+    try:
+        if channel.category.name == "Automatic voice":
+            return True
         else:
-            activity_list.update({activity_name : 1})
-    
-    current_game = ("Lobby", 0)
-    for game, value in activity_list.items():
-        if value > current_game[1]:
-            current_game = (game, value)
-    
-    activity_name = current_game[0]
+            return False
+    except:
+        return False
 
-    await channel.edit(name=activity_name)
+async def get_automatic_member_channel(member: discord.Member) -> discord.VoiceChannel:
+    try:
+        if is_automatic_channel(member.voice.channel):
+            return member.voice.channel
+        else:
+            return None
+    except:
+        return None
+
+async def change_member_limit(member: discord.Member, limit: int) -> str:
+    channel = get_automatic_member_channel(member)
+    if channel is not None:
+        await channel.edit(user_limit = limit)
+        return None
+    else:
+        return "You are not in an automatic voice channel!"
+
+async def update_channel(channel: discord.VoiceChannel):
+    if channel is not None and is_automatic_channel(channel):
+        activity_list = { }
+        for member in channel.members:
+            activity_name = "Allgemein"
+            if not member.activity == None:
+                activity_name = member.activity.name
+
+            if activity_name in activity_list:
+                activity_list.update({activity_name : activity_list.get(activity_name) + 1})
+            else:
+                activity_list.update({activity_name : 1})
+
+        current_game = ("Lobby", 0)
+        for game, value in activity_list.items():
+            if value > current_game[1]:
+                current_game = (game, value)
+
+        activity_name = current_game[0]
+
+        await channel.edit(name=activity_name)
 
 async def create_channel(guild: discord.Guild):
     if guild == None:
         return
 
+    # Find automatic category
     automation_category = None
     for category in guild.categories:
         if category.name == "Automatic voice":
             automation_category = category
 
-    if automation_category == None:
+    # Create automatic category if it doe not exist
+    if automation_category is None:
         automation_category = await guild.create_category("Automatic voice")
 
+    # Create new channel if there is no empty chanel in automatic category
     empty_channel_exists = False
     for channel in automation_category.channels:
         if len(channel.members) <= 0:
@@ -76,34 +103,17 @@ async def on_ready():
 async def on_voice_state_update(member: discord.Member, before, after):
     # Delete empty channels
     discord.VoiceChannel.category
-    if not before.channel == None and before.channel.category.name == "Automatic voice" and len(before.channel.members) <= 0:
+    if not before.channel == None and is_automatic_channel(before.channel) and len(before.channel.members) <= 0:
         await before.channel.delete()
 
-    if not after.channel == None and after.channel.category.name == "Automatic voice" and len(after.channel.members) > 0:
+    if after.channel is not None and len(after.channel.members) > 0:
         await update_channel(after.channel)
         await create_channel(client.guilds[0])
 
 @client.event
 async def on_member_update(before: discord.Member, after: discord.Member):
-    if not after.voice == None:
+    if not after.voice is not None:
         await update_channel(after.voice.channel)
-
-async def get_automatic_member_channel(member: discord.Member) -> discord.VoiceChannel:
-    try:
-        if member.voice.channel.category.name == "Automatic voice":
-            return member.voice.channel
-        else:
-            return None
-    except:
-        return None
-
-async def change_member_limit(member: discord.Member, limit: int) -> str:
-    channel = get_automatic_member_channel(member)
-    if channel is not None:
-        await channel.edit(user_limit = limit)
-        return None
-    else:
-        return "You are not in an automatic voice channel!"
 
 @client.command()
 async def limit(ctx: commands.Context, number_of_members: str):
