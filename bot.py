@@ -17,7 +17,7 @@ client = commands.Bot(command_prefix='!', intents=intents)
 
 description = '''PRO5T'''
 
-async def is_automatic_channel(channel: discord.VoiceChannel):
+def is_automatic_channel(channel: discord.VoiceChannel):
     try:
         if channel.category.name == "Automatic voice":
             return True
@@ -36,7 +36,7 @@ async def get_automatic_member_channel(member: discord.Member) -> discord.VoiceC
         return None
 
 async def change_member_limit(member: discord.Member, limit: int) -> str:
-    channel = get_automatic_member_channel(member)
+    channel = await get_automatic_member_channel(member)
     if channel is not None:
         await channel.edit(user_limit = limit)
         return None
@@ -139,6 +139,7 @@ async def private(ctx: commands.Context):
     channel: discord.VoiceChannel = await get_automatic_member_channel(ctx.author)
     if channel is not None:
         await channel.set_permissions(ctx.guild.default_role, connect=False)
+        await channel.set_permissions(ctx.author, connect=True)
         await ctx.send("{} is a private channel now!".format(channel.name))
     else:
         await ctx.send("You are not in an automatic voice channel!")
