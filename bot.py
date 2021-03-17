@@ -19,10 +19,7 @@ description = '''PRO5T'''
 
 def is_automatic_channel(channel: discord.VoiceChannel):
     try:
-        if channel.category.name == "Automatic voice":
-            return True
-        else:
-            return False
+        return channel.category.name == "Automatic voice"
     except:
         return False
 
