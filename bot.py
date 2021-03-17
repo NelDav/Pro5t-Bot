@@ -47,23 +47,28 @@ async def update_channel(channel: discord.VoiceChannel):
     if channel is not None and is_automatic_channel(channel):
         activity_list = { }
         for member in channel.members:
-            activity_name = "Allgemein"
             if not member.activity == None:
                 activity_name = member.activity.name
 
-            if activity_name in activity_list:
-                activity_list.update({activity_name : activity_list.get(activity_name) + 1})
-            else:
-                activity_list.update({activity_name : 1})
+                if activity_name in activity_list:
+                    activity_list.update({activity_name : activity_list.get(activity_name) + 1})
+                else:
+                    activity_list.update({activity_name : 1})
 
-        current_game = ("Lobby", 0)
+        current_game = None
+        if len(channel.members) > 0:
+            current_game = ("Allgemein", 0)
+        else:
+            current_game = ("Lobby", 0)
         for game, value in activity_list.items():
             if value > current_game[1]:
                 current_game = (game, value)
 
         activity_name = current_game[0]
+        previous_name = channel.name
 
         await channel.edit(name=activity_name)
+        print("Renamed channel \"{}\" to \"{}\"".format(previous_name, activity_name))
 
 async def create_channel(guild: discord.Guild):
     if guild == None:
@@ -87,6 +92,7 @@ async def create_channel(guild: discord.Guild):
 
     if not empty_channel_exists:
         await guild.create_voice_channel("Lobby", category=automation_category)
+        print("Created new channel")
 
 def is_bot_channel(channel: discord.TextChannel) -> bool:
     channel_list = ["commands", "bot-debug"]
@@ -107,7 +113,9 @@ async def on_voice_state_update(member: discord.Member, before, after):
     # Delete empty channels
     discord.VoiceChannel.category
     if not before.channel == None and is_automatic_channel(before.channel) and len(before.channel.members) <= 0:
+        name = before.channel.name
         await before.channel.delete()
+        print("Deleted channel \"{}\"".format(name))
 
     if after.channel is not None and len(after.channel.members) > 0:
         await update_channel(after.channel)
