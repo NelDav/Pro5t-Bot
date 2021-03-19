@@ -64,8 +64,9 @@ async def update_channel(channel: discord.VoiceChannel):
         activity_name = current_game[0]
         previous_name = channel.name
 
-        await channel.edit(name=activity_name)
-        print("Renamed channel \"{}\" to \"{}\"".format(previous_name, activity_name))
+        if (not previous_name == activity_name):
+            await channel.edit(name=activity_name)
+            print("Renamed channel \"{}\" to \"{}\"".format(previous_name, activity_name))
 
 async def create_channel(guild: discord.Guild):
     if guild == None:
