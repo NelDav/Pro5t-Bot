@@ -149,7 +149,9 @@ async def private(ctx: commands.Context):
         channel: discord.VoiceChannel = await get_automatic_member_channel(ctx.author)
         if channel is not None:
             await channel.set_permissions(ctx.guild.default_role, connect=False)
-            await channel.set_permissions(ctx.author, connect=True)
+
+            for member in channel.members:
+                await channel.set_permissions(member, connect=True)
             await ctx.send("{} is a private channel now!".format(channel.name))
         else:
             await ctx.send("You are not in an automatic voice channel!")
