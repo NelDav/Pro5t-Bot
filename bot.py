@@ -23,7 +23,7 @@ def is_automatic_channel(channel: discord.VoiceChannel):
     except:
         return False
 
-async def get_automatic_member_channel(member: discord.Member) -> discord.VoiceChannel:
+def get_automatic_member_channel(member: discord.Member) -> discord.VoiceChannel:
     try:
         if is_automatic_channel(member.voice.channel):
             return member.voice.channel
@@ -33,7 +33,7 @@ async def get_automatic_member_channel(member: discord.Member) -> discord.VoiceC
         return None
 
 async def change_member_limit(member: discord.Member, limit: int) -> str:
-    channel = await get_automatic_member_channel(member)
+    channel = get_automatic_member_channel(member)
     if channel is not None:
         await channel.edit(user_limit = limit)
         return None
@@ -125,6 +125,12 @@ async def on_member_update(before: discord.Member, after: discord.Member):
         await update_channel(after.voice.channel)
 
 @client.command()
+async def update(ctx: commands.Context):
+    channel = get_automatic_member_channel(ctx.author)
+    if channel is not None:
+        update_channel(channel)
+
+@client.command()
 async def limit(ctx: commands.Context, number_of_members: str):
     if number_of_members.isnumeric():
         message = await change_member_limit(ctx.author, int(number_of_members))
@@ -146,7 +152,7 @@ async def unlimit(ctx: commands.Context):
 @client.command()
 async def private(ctx: commands.Context):
     if is_bot_channel(ctx.channel):
-        channel: discord.VoiceChannel = await get_automatic_member_channel(ctx.author)
+        channel: discord.VoiceChannel = get_automatic_member_channel(ctx.author)
         if channel is not None:
             await channel.set_permissions(ctx.guild.default_role, connect=False)
 
@@ -159,7 +165,7 @@ async def private(ctx: commands.Context):
 @client.command()
 async def public(ctx: commands.Context):
     if is_bot_channel(ctx.channel):
-        channel: discord.VoiceChannel = await get_automatic_member_channel(ctx.author)
+        channel: discord.VoiceChannel = get_automatic_member_channel(ctx.author)
         if channel is not None:
             await channel.set_permissions(ctx.guild.default_role, connect=True)
             await ctx.send("{} is a public channel now!".format(channel.name))
@@ -169,7 +175,7 @@ async def public(ctx: commands.Context):
 @client.command()
 async def add(ctx: commands.Context, member: str):
     if is_bot_channel(ctx.channel):
-        channel: discord.VoiceChannel = await get_automatic_member_channel(ctx.author)
+        channel: discord.VoiceChannel = get_automatic_member_channel(ctx.author)
         if channel is not None:
             if channel.overwrites_for(ctx.guild.default_role).connect is False:
                 member = ctx.guild.get_member_named(member)
@@ -186,7 +192,7 @@ async def add(ctx: commands.Context, member: str):
 @client.command()
 async def remove(ctx: commands.Context, member: str):
     if is_bot_channel(ctx.channel):
-        channel: discord.VoiceChannel = await get_automatic_member_channel(ctx.author)
+        channel: discord.VoiceChannel = get_automatic_member_channel(ctx.author)
         if channel is not None:
             if channel.overwrites_for(ctx.guild.default_role).connect is False:
                 member = ctx.guild.get_member_named(member)
