@@ -68,7 +68,7 @@ async def update_channel(channel: discord.VoiceChannel):
             await channel.edit(name=activity_name)
             print("Renamed channel \"{}\" to \"{}\"".format(previous_name, activity_name))
 
-async def create_channel(guild: discord.Guild):
+async def automatic_category(guild: discord.Guild):
     if guild == None:
         return
 
@@ -82,15 +82,28 @@ async def create_channel(guild: discord.Guild):
     if automation_category is None:
         automation_category = await guild.create_category("Automatic voice")
 
+    return automation_category
+
+async def empty_channel(guild: discord.Guild):
+    automation_category = await automatic_category(guild)
+
     # Create new channel if there is no empty chanel in automatic category
-    empty_channel_exists = False
+    empty_channel = None
     for channel in automation_category.channels:
         if len(channel.members) <= 0:
-            empty_channel_exists = True
+            empty_channel = channel
+            break
 
-    if not empty_channel_exists:
-        await guild.create_voice_channel("Lobby", category=automation_category)
+    if empty_channel is None:
+        empty_channel = await guild.create_voice_channel("Lobby", category=automation_category)
         print("Created new channel")
+
+    return empty_channel
+
+async def move_to_automatic_voice(member: discord.Member, guild: discord.Guild):
+    automation_category = await automatic_category(guild)
+    empty_channel = await empty_channel(guild)
+    await member.move_to(empty_channel, "Use automatic voice channels if the bot is runnign!")
 
 def is_bot_channel(channel: discord.TextChannel) -> bool:
     channel_list = ["commands", "bot-debug"]
