@@ -102,8 +102,10 @@ async def empty_channel(guild: discord.Guild):
 
 async def move_to_automatic_voice(member: discord.Member, guild: discord.Guild):
     automation_category = await automatic_category(guild)
-    empty_channel = await empty_channel(guild)
-    await member.move_to(empty_channel, "Use automatic voice channels if the bot is runnign!")
+    channel = await empty_channel(guild)
+    await member.move_to(channel)
+    print("Moved user!")
+    empty_channel(guild)
 
 def is_bot_channel(channel: discord.TextChannel) -> bool:
     channel_list = ["commands", "bot-debug"]
@@ -117,20 +119,24 @@ async def on_ready():
     print("------")
 
     for guild in client.guilds:
-        await create_channel(guild)
+        await empty_channel(guild)
 
 @client.event
 async def on_voice_state_update(member: discord.Member, before, after):
+
+    if after.channel is not None and not is_automatic_channel(after.channel):
+        await move_to_automatic_voice(member, client.guilds[0])
+        return
+
     # Delete empty channels
-    discord.VoiceChannel.category
-    if not before.channel == None and is_automatic_channel(before.channel) and len(before.channel.members) <= 0:
+    if before.channel is not None and is_automatic_channel(before.channel) and len(before.channel.members) <= 0:
         name = before.channel.name
         await before.channel.delete()
         print("Deleted channel \"{}\"".format(name))
 
     if after.channel is not None and len(after.channel.members) > 0:
         await update_channel(after.channel)
-        await create_channel(client.guilds[0])
+        await empty_channel(client.guilds[0])
 
 @client.event
 async def on_member_update(before: discord.Member, after: discord.Member):
