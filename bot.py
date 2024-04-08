@@ -2,6 +2,7 @@ import os
 
 import discord
 from discord.ext import commands
+from discord.commands.context import ApplicationContext
 from dotenv import load_dotenv
 
 intents = discord.Intents.default()
@@ -13,7 +14,7 @@ load_dotenv()
 
 token = os.getenv("TOKEN")
 
-client = commands.Bot(command_prefix='!', intents=intents)
+client = commands.Bot(intents=intents)
 
 description = '''PRO5T'''
 
@@ -44,7 +45,7 @@ async def update_channel(channel: discord.VoiceChannel):
     if channel is not None and is_automatic_channel(channel):
         activity_list = { }
         for member in channel.members:
-            if not member.activity == None:
+            if member.activity is not None:
                 activity_name = member.activity.name
 
                 if activity_name in activity_list:
@@ -107,10 +108,6 @@ async def move_to_automatic_voice(member: discord.Member, guild: discord.Guild):
     print("Moved user!")
     empty_channel(guild)
 
-def is_bot_channel(channel: discord.TextChannel) -> bool:
-    channel_list = ["commands", "bot-debug"]
-    return channel.name in channel_list
-
 @client.event
 async def on_ready():
     print("Logged in as")
@@ -143,86 +140,89 @@ async def on_member_update(before: discord.Member, after: discord.Member):
     if after.voice is not None:
         await update_channel(after.voice.channel)
 
-@client.command()
-async def update(ctx: commands.Context):
+
+
+
+voice = client.create_group("voice", "Automatic Voice config")
+
+@voice.command()
+async def update(ctx: ApplicationContext):
     channel = get_automatic_member_channel(ctx.author)
     if channel is not None:
         update_channel(channel)
+        await ctx.respond("Updated channel names.")
 
-@client.command()
-async def limit(ctx: commands.Context, number_of_members: str):
+
+@voice.command()
+async def limit(ctx: ApplicationContext, number_of_members: str):
     if number_of_members.isnumeric():
         message = await change_member_limit(ctx.author, int(number_of_members))
         if message == None:
-            await ctx.send("The number of users for the channel {} is limited to {} members!".format(ctx.author.voice.channel.name, number_of_members))
+            await ctx.respond("The number of users for the channel {} is limited to {} members.".format(ctx.author.voice.channel.name, number_of_members))
         else:
-            await ctx.send(message)
+            await ctx.respond(message)
     else:
-        await ctx.send("Please specify the number of members allowed in this channel!")
+        await ctx.respond("Please specify the number of members allowed in this channel!")
 
-@client.command()
-async def unlimit(ctx: commands.Context):
+@voice.command()
+async def unlimit(ctx: ApplicationContext):
     message = await change_member_limit(ctx.author, 0)
     if message == None:
-        await ctx.send("The number of users for the channel {} is unlimeted now!".format(ctx.author.voice.channel.name))
+        await ctx.respond("The number of users for the channel {} is unlimeted now.".format(ctx.author.voice.channel.name))
     else:
-        await ctx.send(message)
+        await ctx.respond(message)
 
-@client.command()
-async def private(ctx: commands.Context):
-    if is_bot_channel(ctx.channel):
-        channel: discord.VoiceChannel = get_automatic_member_channel(ctx.author)
-        if channel is not None:
-            await channel.set_permissions(ctx.guild.default_role, connect=False)
+@voice.command()
+async def private(ctx: ApplicationContext):
+    channel: discord.VoiceChannel = get_automatic_member_channel(ctx.author)
+    if channel is not None:
+        await channel.set_permissions(ctx.guild.default_role, connect=False)
 
-            for member in channel.members:
+        for member in channel.members:
+            await channel.set_permissions(member, connect=True)
+        await ctx.respond("{} is a private channel now.".format(channel.name))
+    else:
+        await ctx.respond("You are not in an automatic voice channel!")
+
+@voice.command()
+async def public(ctx: ApplicationContext):
+    channel: discord.VoiceChannel = get_automatic_member_channel(ctx.author)
+    if channel is not None:
+        await channel.set_permissions(ctx.guild.default_role, connect=True)
+        await ctx.respond("{} is a public channel now.".format(channel.name))
+    else:
+        await ctx.respond("You are not in an automatic voice channel!")
+
+@voice.command()
+async def add(ctx: ApplicationContext, member: str):
+    channel: discord.VoiceChannel = get_automatic_member_channel(ctx.author)
+    if channel is not None:
+        if channel.overwrites_for(ctx.guild.default_role).connect is False:
+            member = ctx.guild.get_member_named(member)
+            if member is not None:
                 await channel.set_permissions(member, connect=True)
-            await ctx.send("{} is a private channel now!".format(channel.name))
-        else:
-            await ctx.send("You are not in an automatic voice channel!")
-
-@client.command()
-async def public(ctx: commands.Context):
-    if is_bot_channel(ctx.channel):
-        channel: discord.VoiceChannel = get_automatic_member_channel(ctx.author)
-        if channel is not None:
-            await channel.set_permissions(ctx.guild.default_role, connect=True)
-            await ctx.send("{} is a public channel now!".format(channel.name))
-        else:
-            await ctx.send("You are not in an automatic voice channel!")
-
-@client.command()
-async def add(ctx: commands.Context, member: str):
-    if is_bot_channel(ctx.channel):
-        channel: discord.VoiceChannel = get_automatic_member_channel(ctx.author)
-        if channel is not None:
-            if channel.overwrites_for(ctx.guild.default_role).connect is False:
-                member = ctx.guild.get_member_named(member)
-                if member is not None:
-                    await channel.set_permissions(member, connect=True)
-                    await ctx.send("Added {} to {}!".format(member, channel.name))
-                else:
-                    await ctx.send("This user is not member of this guild!")
+                await ctx.respond("Added {} to {}.".format(member, channel.name))
             else:
-                await ctx.send("{} is not a private channel. Use !private to change!".format(channel.name))
+                await ctx.respond("This user is not member of this guild!")
         else:
-            await ctx.send("You are not in an automatic voice channel!")
+            await ctx.respond("{} is not a private channel. Use `/voice private` to change!".format(channel.name))
+    else:
+        await ctx.respond("You are not in an automatic voice channel!")
 
-@client.command()
-async def remove(ctx: commands.Context, member: str):
-    if is_bot_channel(ctx.channel):
-        channel: discord.VoiceChannel = get_automatic_member_channel(ctx.author)
-        if channel is not None:
-            if channel.overwrites_for(ctx.guild.default_role).connect is False:
-                member = ctx.guild.get_member_named(member)
-                if member is not None:
-                    await channel.set_permissions(member, connect=False)
-                    await ctx.send("Added {} to {}!".format(member, channel.name))
-                else:
-                    await ctx.send("This user is not member of this guild!")
+@voice.command()
+async def remove(ctx: ApplicationContext, member: str):
+    channel: discord.VoiceChannel = get_automatic_member_channel(ctx.author)
+    if channel is not None:
+        if channel.overwrites_for(ctx.guild.default_role).connect is False:
+            member = ctx.guild.get_member_named(member)
+            if member is not None:
+                await channel.set_permissions(member, connect=False)
+                await ctx.respond("Added {} to {}.".format(member, channel.name))
             else:
-                await ctx.send("{} is not a private channel. Use !private to change!".format(channel.name))
+                await ctx.respond("This user is not member of this guild!")
         else:
-            await ctx.send("You are not in an automatic voice channel!")
+            await ctx.respond("{} is not a private channel. Use `/voice private` to change!".format(channel.name))
+    else:
+        await ctx.respond("You are not in an automatic voice channel!")
 
 client.run(token)
