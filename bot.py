@@ -67,7 +67,10 @@ async def update_channel(channel: discord.VoiceChannel):
 
         if (not previous_name == activity_name):
             await channel.edit(name=activity_name)
-            print("Renamed channel \"{}\" to \"{}\"".format(previous_name, activity_name))
+            try:
+                print("Renamed channel \"{}\" to \"{}\"".format(previous_name, activity_name))
+            except:
+                pass
 
 async def automatic_category(guild: discord.Guild):
     if guild == None:
@@ -97,7 +100,10 @@ async def empty_channel(guild: discord.Guild):
 
     if empty_channel is None:
         empty_channel = await guild.create_voice_channel("Lobby", category=automation_category)
-        print("Created new channel")
+        try:
+            print("Created new channel")
+        except:
+            pass
 
     return empty_channel
 
@@ -105,15 +111,21 @@ async def move_to_automatic_voice(member: discord.Member, guild: discord.Guild):
     automation_category = await automatic_category(guild)
     channel = await empty_channel(guild)
     await member.move_to(channel)
-    print("Moved user!")
     empty_channel(guild)
+    try:
+        print("Moved user!")
+    except:
+        pass
 
 @client.event
 async def on_ready():
-    print("Logged in as")
-    print(client.user.name)
-    print(client.user.id)
-    print("------")
+    try:
+        print("Logged in as")
+        print(client.user.name)
+        print(client.user.id)
+        print("------")
+    except:
+        pass
 
     for guild in client.guilds:
         await empty_channel(guild)
@@ -129,7 +141,10 @@ async def on_voice_state_update(member: discord.Member, before, after):
     if before.channel is not None and is_automatic_channel(before.channel) and len(before.channel.members) <= 0:
         name = before.channel.name
         await before.channel.delete()
-        print("Deleted channel \"{}\"".format(name))
+        try:
+            print("Deleted channel \"{}\"".format(name))
+        except:
+            pass
 
     if after.channel is not None and len(after.channel.members) > 0:
         await update_channel(after.channel)
